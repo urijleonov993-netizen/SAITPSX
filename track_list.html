@@ -1,0 +1,273 @@
+{% load my_tags %}
+{% load static %}
+
+
+<div class="tab_container sep-c" id="track_list" data-release-id="{{ current_release_id }}">
+    {# mini-CSS перенесён в static/css/new_release.css #}
+
+    <div class="load_tracks page_block">
+        <p class="title_block">Загрузка треков</p>
+
+        <form method="post"
+      action="{% url 'new_release' %}"
+      enctype="multipart/form-data"
+      class="upload_tracks_form">
+  {% csrf_token %}
+
+            <div class="load_block" id="upload_zone" style="position:relative;cursor:pointer;">
+                <p class="load_title_block">Перенесите файлы сюда или нажмите, чтобы загрузить</p>
+                <div>
+                    <p class="subtitle_block" style="text-align:center">Форматы: .wav / .flac</p>
+                    <p class="subtitle_block" style="text-align:center">Максимальный размер: 1 Гб</p>
+                </div>
+
+                <input id="track_files_input" type="file" name="track_files[]"  accept=".wav,.flac,audio/wav,audio/flac"
+                       multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;"/>
+            </div>
+
+            <p class="upload-status" id="upload_status" aria-live="polite" hidden>Загрузка…</p>
+        </form>
+    </div>
+
+    <div id="tracks_wrap" class="tracks_wrap">
+        <p class="title_block">Трек-лист</p>
+
+
+        <!-- СКРЫТАЯ базовая карточка: появится только после загрузки -->
+        <div class="track_container"
+     id="track_1"
+     data-template="1"
+     hidden
+     style="flex-direction:column;background:#fff;border-radius:8px;">
+            <div class="track_header" onclick="clickOnTrackInfo(event)"
+     style="position:relative;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;min-width:0;">
+  <svg class="arrow_down" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"
+       width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"
+          stroke-width="1.5" d="M19.92 8.95l-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"></path>
+  </svg>
+  <span class="track_index">1</span>
+  <span class="track_title"
+        style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw;min-width:0;">Без названия</span>
+
+  <div class="track_meta"
+       style="margin-left:auto;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:84px;">
+    <span class="track_orig_label" style="color:rgba(0,0,0,.45);font-size:15px;line-height:20px;" hidden>
+      Оригинальное название файла:
+    </span>
+    <span class="track_original"
+          style="color:rgba(0,0,0,.6);font-size:15px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32vw;"
+          hidden></span>
+  </div>
+
+  <span class="track_time"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);color:rgba(0,0,0,.92);white-space:nowrap;font-variant-numeric:tabular-nums;">—:—</span>
+</div>
+<!-- скрытый плеер для вычисления длительности -->
+<audio class="track_player" preload="metadata" hidden></audio>
+
+
+            <div class="track_info">
+                <!-- Название -->
+                <div class="track_titles">
+                    <p class="title_block">Название</p>
+                    <div class="inputs_row">
+                        <div class="input_block">
+                            <p>Название трека</p>
+                            {% input_simple "Введите название" "release_title" %}
+                        </div>
+                        <div class="input_block">
+                            <p>Подзаголовок</p>
+                            {% input_simple "Введите подзаголовок" "release_subtitle" %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Идентификация -->
+                <div class="track_identification" style="display:flex;flex-direction:column;grid-gap:30px;">
+                    <div>
+                        <p class="title_block">Идентификация</p>
+                        <p class="subtitle_block">Укажите код, он необходим для точности в идентификации релиза на
+                            площадках и отчетности, если у вас нет ISRC, код будет сгенерирован автоматически</p>
+                    </div>
+                    <div class="inputs_row">
+                        <div class="input_block">
+                            <p>ISRC</p>
+                            {% input_simple "Введите ISRC" "track_isrc[]" %}
+                        </div>
+                        <div class="input_block">
+                            <p>Код партнёра</p>
+                            {% input_simple "Введите код партнёра" "track_partner_code[]" %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Персоны и роли -->
+                <div class="persons_and_roles page_block" id="track_roles_block">
+                    <div>
+                        <p class="title_block">Персоны и роли</p>
+                        <p class="subtitle_block">Для Исполнителей, Соисполнителей (feat.), Producer и Remixer
+                            указывайте <b>псевдоним</b>.</p>
+                        <p class="subtitle_block">Для Авторов музыки и Авторов слов указывайте <b>фактические</b> имена
+                            и фамилии.</p>
+                    </div>
+
+                    <div class="roles" id="roles_track_1"></div>
+
+                    <template id="tpl_role_track">
+  <div class="role_row">
+    <div class="inputs_row">
+      <div class="input_block">
+        <input type="text" name="track_person[]" placeholder="Имя персоны" class="pr-input">
+      </div>
+      <div class="input_block">
+        <select name="track_role[]" class="pr-select">
+          <option value="" selected disabled>Роль персоны</option>
+          <option value="performer">Исполнитель</option>
+          <option value="featured">feat.</option>
+          <option value="composer">Автор музыки</option>
+          <option value="lyricist">Автор слов</option>
+          <option value="producer">Producer</option>
+          <option value="remixer">Remixer</option>
+        </select>
+      </div>
+    </div>
+    <span class="icon-square icon-trash" role="button" aria-label="Удалить"
+          onclick="this.closest('.role_row').remove()">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="display:block;pointer-events:none;">
+        <path d="M5 7h14M10 7v10M14 7v10M6 7l1 12a2 2 0 0 0 2 2h6a 2 2 0 0 0 2-2l1-12"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </div>
+</template>
+
+
+                    <!-- КНОПКА «+» ТЕПЕРЬ КОНТЕКСТНАЯ -->
+                    <span class="icon-square" id="add_role_track_btn" onclick="window.addTrackRoleRow(this)"
+                          style="margin-top:16px;width:28px;height:28px;border:1px solid rgba(0,0,0,.2);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;background:#fff;color:rgba(0,0,0,.45);cursor:pointer;position:relative;">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
+                 style="pointer-events:none;display:block">
+              <path d="M12 5c.41 0 .75.34.75.75V11.25H18.25c.41 0 .75.34.75.75s-.34.75-.75.75H12.75V18.25c0 .41-.34.75-.75.75s-.75-.34-.75-.75V12.75H5.75c-.41 0-.75-.34-.75-.75s.34-.75.75-.75H11.25V5.75c0-.41.34-.75.75-.75z"
+                    fill="currentColor"/>
+            </svg>
+          </span>
+                </div>
+
+                <!-- Доп. параметры -->
+                <div class="track_extra" id="track_extra_1" style="margin-top:24px;">
+                    <p class="title_block">Дополнительные параметры</p>
+                    <div class="inputs_row">
+                        <div class="input_block" style="flex:1 1 50%;">
+                            <p>Начало предпрослушивания (секунды)</p>
+                            <input type="number" name="track_preview_start[]" class="pr-input"
+                                   placeholder="Например, 20.000" inputmode="decimal" step="0.001" min="0"
+                                   style="box-sizing:border-box;width:100%;height:44px;padding:10px 12px;border:1px solid rgba(0,0,0,.2);border-radius:5px;font-size:16px;line-height:20px;">
+                            <div class="micro_hint micro_hint-bubble">
+                                <p class="mh-title subtitle_block">С выбранной секунды начнётся воспроизведение
+                                    фрагмента:</p>
+                                <ul class="mh-list">
+                                    <li>VK Клипы;</li>
+                                    <li>сниппет VK Музыка;</li>
+                                    <li>превью в iTunes/Apple Music;</li>
+                                    <li>TikTok/Likee звук и т.д.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Версия -->
+                <div class="track_version" id="track_version_1" style="margin-top:24px;">
+                    <p class="title_block">Версия трека</p>
+                    <p class="subtitle_block">Укажите версию трека — параметр участвует в рекомендациях площадок.</p>
+                    <div class="version_checks" style="display:flex;flex-direction:column;gap:15px;">
+                        <label class="pr-check">
+                            <input type="checkbox" name="track_version_explicit[]" value="1">
+                            <span class="box" aria-hidden="true"></span>
+                            <span class="label">Explicit Content</span>
+                        </label>
+                        <label class="pr-check">
+                            <input type="checkbox" name="track_version_drugs[]" value="1">
+                            <span class="box" aria-hidden="true"></span>
+                            <span class="label">Упоминание наркотических/психотропных веществ</span>
+                        </label>
+                        <label class="pr-check">
+                            <input type="checkbox" name="track_version_instrumental[]" value="1">
+                            <span class="box" aria-hidden="true"></span>
+                            <span class="label">Instrumental</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Язык -->
+                <div class="track_language" id="track_language_1" style="margin-top:24px;">
+                    <p class="title_block">Язык трека</p>
+                    <div class="input_block">
+                        <p>Выберите язык</p>
+                        <p class="subtitle_block">Если трек без вокала — «Без слов».</p>
+                        <select id="track_language_select_1" name="track_language[]" class="pr-select">
+                            <option value="" selected disabled>Загружаем языки…</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Текст + «караоке» -->
+                <div class="track_lyrics" id="track_lyrics_1" style="margin-top:24px;">
+                    <p class="title_block">Текст трека</p>
+                    <p class="subtitle_block">
+                        Перед загрузкой откройте «Подробнее» и прочитайте правила:
+                        <button type="button" id="lyrics_rules_btn_1" class="rules-link-btn"
+                                data-panel="lyrics_rules_panel_1">Подробнее
+                        </button>
+                    </p>
+
+                    <div class="input_block">
+            <textarea name="track_lyrics[]" class="pr-textarea" placeholder="Пример правильного заполнения:
+
+Может, того не стоит
+Ставить пароли
+Отыгрывать роли
+…"></textarea>
+                    </div>
+
+                    <div class="rules-popover" id="lyrics_rules_panel_1" hidden>
+                        <div class="rules-head">
+                            <strong>Правила оформления текста</strong>
+                            <button type="button" class="rules-close" aria-label="Закрыть">✕</button>
+                        </div>
+                        <ul class="rules-list">
+                            <li>Текст в точности, как в записи</li>
+                            <li>Орфография и пунктуация</li>
+                            <li>Строки — одинарный интервал, строфы — двойной</li>
+                            <li>Без пометок «Припев», «Вступление» и т.п.</li>
+                            <li>Мат в Explicit — пишем текстом</li>
+                        </ul>
+                    </div>
+
+                    <div class="synced_lyrics_cta" data-role="synced-lyrics-cta" data-addon="synced_lyrics" data-track-id="1" aria-live="polite">
+                        <input type="hidden" name="track_synced_lyrics[]" value="0">
+                        <div class="cta-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" focusable="false">
+                                <path d="M9 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-13v9.28A4 4 0 1 1 15 14V7.5l-4 1V6l6-1.5Z"/>
+                            </svg>
+                        </div>
+                        <div class="cta-text">
+                            <p class="cta-title">Добавить синхронизированный текст трека</p>
+                            <p class="cta-desc">Подготовим «караоке»-версию и отгрузим в VK/ЯМузыку. <span
+                                    class="price">Стоимость — <b>500 ₽</b>.</span></p>
+                        </div>
+                        <div class="cta-actions">
+                            <button type="button" class="btn-orange" data-role="toggle-synced" aria-pressed="false"
+                                    onclick="window.toggleSyncedLyrics(this)">Добавить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- /.track_info -->
+        </div>   <!-- /.track_container -->
+
+    </div>
+</div>
+
+

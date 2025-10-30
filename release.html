@@ -1,0 +1,216 @@
+{% load my_tags %}
+<div class="tab_container selected" id="release">
+  <div>
+    <p class="title_block">Работа с релизом</p>
+    <p class="subtitle_block">Заполните общую информацию по релизу</p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data"
+        class="add_release_form" id="new_release_form" action="{% url 'new_release' %}">
+    {% csrf_token %}
+
+    <div class="main_info page_block">
+      <div>
+        <p class="title_block">Основная информация</p>
+        <p class="subtitle_block">Заполните общую информацию по вашему релизу</p>
+      </div>
+
+      <div class="input_block">
+        <p>Язык метаданных</p>
+        <select-one-with-search
+          pattern="release"
+          id="language_metadata"
+          name="language_metadata"
+          value="{{ add_release_form.language_metadata.value|default_if_none:'russian' }}"
+          placeholder="Выберите язык"
+          style="width:100%;"
+        ></select-one-with-search>
+      </div>
+
+      <div class="inputs_row">
+        <div class="input_block">
+          <p>Название релиза</p>
+          <input-simple
+            id="album_title"
+            name="album_title"
+            value="{{ add_release_form.album_title.value|default:'' }}"
+            placeholder="Введите название"
+          ></input-simple>
+        </div>
+        <div class="input_block">
+          <p>Подзаголовок</p>
+          <input-simple
+            id="album_subtitle"
+            name="album_subtitle"
+            value="{{ add_release_form.album_subtitle.value|default:'' }}"
+            placeholder="Введите подзаголовок"
+          ></input-simple>
+        </div>
+      </div>
+
+      <div class="input_block">
+        <p>Тип релиза</p>
+        <inputs-radio
+          pattern="release"
+          id="type_release"
+          name="type_release"
+          value="{{ add_release_form.type_release.value|default_if_none:'Single' }}"
+        ></inputs-radio>
+      </div>
+<input type="hidden"
+       id="type_release_hidden"
+       name="type_release"
+       value="{{ add_release_form.type_release.value|default_if_none:'Single' }}">
+
+      <div class="input_block">
+        <p>Обложка релиза</p>
+        <div class="cover_requirements">
+          <p class="subtitle_block">Формат: .jpg, .png</p>
+          <p class="subtitle_block">Минимальный размер: 1400x1400px</p>
+          <p class="subtitle_block">Максимальный размер: 6000x6000px</p>
+          <p class="subtitle_block">Разрешение: не менее 72 dpi</p>
+          <p class="subtitle_block">Максимальный размер файла: 20 МБ</p>
+        </div>
+
+        <input-img
+          id="cover"
+          name="cover"
+          src="{% if release and release.cover %}{% if release.cover.url %}{{ release.cover.url }}{% else %}{{ release.cover }}{% endif %}{% endif %}"
+          form_id="new_release_form"
+        ></input-img>
+      </div>
+    </div>
+
+    {# ------- Персоны и роли (РЕЛИЗ) ------- #}
+    <div class="persons_and_roles page_block">
+      <div>
+        <p class="title_block">Персоны и роли</p>
+        <p class="subtitle_block">
+          Для Исполнителей, Соисполнителей (feat.), Remixer необходимо указать псевдоним артиста, группы или проекта.
+        </p>
+      </div>
+
+      <div class="roles" id="roles_release"></div>
+
+      <template id="tpl_role_release">
+        <div class="role_row">
+          <div class="inputs_row">
+            <div class="input_block">
+              <input type="text" name="release_person[]" placeholder="Имя персоны" class="pr-input">
+            </div>
+            <div class="input_block">
+              <select name="release_role[]" class="pr-select">
+  <option value="" selected disabled>Роль персоны</option>
+  <option value="performer">Исполнитель</option>
+  <option value="featured">feat.</option>
+  <option value="remixer">Remixer</option>
+</select>
+</div> <!-- .input_block -->
+</div> <!-- .inputs_row -->
+<span class="icon-square icon-trash" data-action="remove-role">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18M9 6v12m6-12v12M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"
+                    fill="none" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </span>
+        </div>
+      </template>
+
+      <svg class="add_role icon-square"
+           onclick="addReleaseRoleRow()"
+           xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+           style="cursor:pointer;margin-top:-8px">
+        <path d="M12 5c.41 0 .75.34.75.75V11.25H18.25c.41 0 .75.34.75.75s-.34.75-.75.75H12.75V18.25c0 .41-.34.75-.75.75s-.75-.34-.75-.75V12.75H5.75c.41 0 .75-.34.75-.75s.34-.75.75-.75H11.25V5.75c0-.41.34-.75.75-.75z"
+              fill="currentColor"/>
+      </svg>
+    </div>
+
+    {# ------- Жанр ------- #}
+    <div class="genre_and_subgenre page_block">
+      <div>
+        <p class="title_block">Жанр и поджанр</p>
+        <p class="subtitle_block">Укажите основной жанр и поджанр для релиза</p>
+      </div>
+      <div class="inputs_row">
+        <div class="input_block">
+          <p>Жанр</p>
+          <select-one-with-search
+            pattern="release"
+            id="genre"
+            name="genre"
+            value="{{ add_release_form.genre.value|default_if_none:'' }}"
+            placeholder="Выберите жанр"
+            style="width:100%;"
+          ></select-one-with-search>
+        </div>
+        <div class="input_block">
+          <p>Поджанр</p>
+          <select-one-with-search
+            pattern="release"
+            id="subgenre"
+            name="subgenre"
+            value="{{ add_release_form.subgenre.value|default_if_none:'' }}"
+            placeholder="Выберите поджанр"
+            style="width:100%;"
+          ></select-one-with-search>
+        </div>
+      </div>
+    </div>
+
+    <div class="identification page_block">
+      <div>
+        <p class="title_block">Идентификация</p>
+        <p class="subtitle_block">Укажите код, он необходим для точности в идентификации релиза на площадках и отчётности, если у вас нет UPC, код будет сгенерирован автоматически</p>
+      </div>
+      <div class="inputs_row">
+        <div class="input_block">
+          <p>UPC</p>
+          <input-simple
+            id="album_UPC"
+            name="album_UPC"
+            value="{{ add_release_form.album_UPC.value|default:'' }}"
+            placeholder="Введите UPC"
+          ></input-simple>
+        </div>
+      </div>
+    </div>
+
+    <div class="release_date page_block">
+      <div>
+        <p class="title_block">Даты</p>
+        <p class="subtitle_block">Укажите основные даты для релиза</p>
+      </div>
+
+      <div class="inputs_row">
+        <div class="input_block">
+          <p>Дата релиза</p>
+          <input-date
+            id="release_date"
+            name="release_date"
+            value="{% if release and release.release_date %}{{ release.release_date|date:'Y-m-d' }}{% elif add_release_form.release_date.value %}{{ add_release_form.release_date.value|date:'Y-m-d' }}{% else %}{% endif %}"
+            placeholder="Выберите дату релиза"
+            style="width:100%"
+          ></input-date>
+        </div>
+
+        <div class="input_block">
+          <p>Дата старта</p>
+          <input-date
+            id="start_date"
+            name="start_date"
+            value="{% if release and release.start_date %}{{ release.start_date|date:'Y-m-d' }}{% elif add_release_form.start_date.value %}{{ add_release_form.start_date.value|date:'Y-m-d' }}{% else %}{% endif %}"
+
+            placeholder="Выберите дату старта"
+            style="width:100%"
+          ></input-date>
+        </div>
+      </div>
+    </div>
+
+
+  </form>
+</div>
+
+
+
